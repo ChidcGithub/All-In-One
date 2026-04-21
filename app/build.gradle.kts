@@ -36,6 +36,14 @@ android {
             applicationIdSuffix = ".debug"
         }
     }
+    splits {
+        abi {
+            isEnable = true
+            isUniversalApk = false
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21

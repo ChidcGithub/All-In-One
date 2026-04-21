@@ -51,11 +51,18 @@ jobs:
         id: collect_apks
         run: |
           mkdir -p release-apks
-          cp app/build/outputs/apk/debug/app-arm64-v8a-debug.apk release-apks/all-in-one-debug-arm64-v8a.apk
-          cp app/build/outputs/apk/debug/app-armeabi-v7a-debug.apk release-apks/all-in-one-debug-armeabi-v7a.apk
-          cp app/build/outputs/apk/debug/app-x86-debug.apk release-apks/all-in-one-debug-x86.apk
-          cp app/build/outputs/apk/debug/app-x86_64-debug.apk release-apks/all-in-one-debug-x86_64.apk
-          echo "apk_count=4" >> $GITHUB_OUTPUT
+          # Find and copy APKs regardless of version suffix in filename
+          for abi in arm64-v8a armeabi-v7a x86 x86_64; do
+            APK_FILE=$(find app/build/outputs/apk/debug -name "*-${abi}-*.apk" | head -1)
+            if [ -n "$APK_FILE" ]; then
+              cp "$APK_FILE" "release-apks/all-in-one-debug-${abi}.apk"
+              echo "Found APK: $APK_FILE"
+            else
+              echo "Warning: No APK found for ABI ${abi}"
+            fi
+          done
+          ls -la release-apks/
+          echo "apk_count=$(ls release-apks/*.apk 2>/dev/null | wc -l)" >> $GITHUB_OUTPUT
 
       - name: Get commit info
         id: commit_info
