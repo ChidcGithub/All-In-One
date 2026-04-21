@@ -1,10 +1,11 @@
 package com.allinone.feature.system
 
-import android.accessibilityservice.AccessibilityManager
-import android.accessibilityservice.AccessibilityServiceInfo
+import android.view.accessibility.AccessibilityManager
+import android.view.accessibility.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -91,8 +92,8 @@ fun AccessibilityScreen(
                         onClick = {
                             val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
                             val services = am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
-                            accessibilityStatus = "Enabled services: ${services?.size ?: 0}\n" +
-                                    services?.joinToString("\n") { it.resolveInfo.loadLabel(context.packageManager).toString() } ?: "None"
+                            val serviceList = services?.joinToString("\n") { s -> s.resolveInfo.loadLabel(context.packageManager).toString() }
+                            accessibilityStatus = "Enabled services: ${services?.size ?: 0}\n$serviceList"
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {

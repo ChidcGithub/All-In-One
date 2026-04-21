@@ -311,9 +311,9 @@ fun SpringSpeedDemo() {
     var speed by remember { mutableStateOf("default") }
 
     val springSpec = when (speed) {
-        "fast" -> spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessVeryLow)
-        "slow" -> spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = 50f)
-        else -> spring()
+        "fast" -> spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessVeryLow)
+        "slow" -> spring<Float>(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = 50f)
+        else -> spring<Float>()
     }
 
     var value by remember { mutableStateOf(0f) }

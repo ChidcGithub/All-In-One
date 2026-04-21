@@ -79,13 +79,8 @@ fun BackgroundTasksScreen(
                 Column {
                     Button(
                         onClick = {
-                            val workRequest = OneTimeWorkRequestBuilder<androidx.work.Worker>()
-                                .setWorkerClassName("com.allinone.DemoWorker")
-                                .setInitialDelay(10, TimeUnit.SECONDS)
-                                .addTag("demo")
-                                .build()
-                            // In real app: WorkManager.getInstance(context).enqueue(workRequest)
-                            workManagerStatus = "One-time work scheduled (demo)"
+                            // OneTimeWorkRequest requires a Worker subclass implementation
+                            workManagerStatus = "WorkManager demo (requires custom Worker class)"
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
