@@ -101,8 +101,7 @@ fun BackgroundTasksScreen(
                                     if (workInfo != null) {
                                         when (workInfo.state) {
                                             WorkInfo.State.RUNNING -> {
-                                                val progress = workInfo.progress.getInt("progress", 0)
-                                                workManagerStatus = "Working... $progress%"
+                                                workManagerStatus = "Work running..."
                                             }
                                             WorkInfo.State.SUCCEEDED -> {
                                                 val result = workInfo.outputData.getString("result") ?: "Done"

@@ -17,10 +17,9 @@ class DemoWorker(
     override fun doWork(): Result {
         val taskName = inputData.getString(KEY_TASK_NAME) ?: "Default Task"
 
-        // Simulate work with progress reporting
+        // Simulate work
         for (i in 1..5) {
             if (isStopped) return Result.failure()
-            setProgress(workDataOf("progress" to (i * 20)))
             Thread.sleep(500)
         }
 
