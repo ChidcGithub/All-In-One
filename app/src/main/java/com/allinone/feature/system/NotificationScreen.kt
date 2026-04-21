@@ -56,7 +56,7 @@ fun NotificationScreen(
                 "Basic Notifications",
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                group = "demo_group"
+                setGroup("demo_group")
                 description = "Channel for basic notifications"
             }
 
@@ -66,7 +66,7 @@ fun NotificationScreen(
                 "Rich Media Notifications",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                group = "demo_group"
+                setGroup("demo_group")
                 description = "Channel for rich media notifications"
             }
 
@@ -76,7 +76,7 @@ fun NotificationScreen(
                 "Progress Notifications",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                group = "demo_group"
+                setGroup("demo_group")
                 description = "Channel for progress notifications"
             }
 
@@ -223,7 +223,7 @@ fun NotificationScreen(
                     onClick = {
                         val bigPictureStyle = NotificationCompat.BigPictureStyle()
                             .bigPicture(android.graphics.Bitmap.createBitmap(100, 100, android.graphics.Bitmap.Config.ARGB_8888))
-                            .bigLargeIcon(null)
+                            .bigLargeIcon(null as android.graphics.Bitmap?)
 
                         val notification = NotificationCompat.Builder(context, "rich_channel")
                             .setSmallIcon(android.R.drawable.ic_menu_gallery)

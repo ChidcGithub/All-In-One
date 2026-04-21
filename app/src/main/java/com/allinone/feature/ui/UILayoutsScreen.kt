@@ -178,7 +178,7 @@ fun UILayoutsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        itemsIndexed(0..9) { _, index ->
+                        itemsIndexed((0..9).toList()) { index, _ ->
                             Card(
                                 modifier = Modifier
                                     .size(80.dp)

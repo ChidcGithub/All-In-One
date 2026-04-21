@@ -79,7 +79,8 @@ fun BackgroundTasksScreen(
                 Column {
                     Button(
                         onClick = {
-                            val workRequest = OneTimeWorkRequestBuilder<androidx.work.Worker>("com.allinone.DemoWorker")
+                            val workRequest = OneTimeWorkRequestBuilder<androidx.work.Worker>()
+                                .setWorkerClassName("com.allinone.DemoWorker")
                                 .setInitialDelay(10, TimeUnit.SECONDS)
                                 .addTag("demo")
                                 .build()

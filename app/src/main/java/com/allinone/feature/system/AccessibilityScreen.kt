@@ -1,6 +1,10 @@
 package com.allinone.feature.system
 
-import androidx.compose.foundation.layout.Arrangement
+import android.accessibilityservice.AccessibilityManager
+import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -69,8 +73,8 @@ fun AccessibilityScreen(
             ) {
                 Button(
                     onClick = {
-                        val am = context.getSystemService(android.accessibilityservice.AccessibilityManager::class.java)
-                        accessibilityStatus = "TalkBack enabled: ${am?.isTouchExplorationEnabled == true}"
+                        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+                        accessibilityStatus = "TalkBack enabled: ${am.isTouchExplorationEnabled}"
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -85,8 +89,8 @@ fun AccessibilityScreen(
                 Column {
                     Button(
                         onClick = {
-                            val am = context.getSystemService(android.accessibilityservice.AccessibilityManager::class.java)
-                            val services = am?.getEnabledAccessibilityServiceList(android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+                            val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+                            val services = am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
                             accessibilityStatus = "Enabled services: ${services?.size ?: 0}\n" +
                                     services?.joinToString("\n") { it.resolveInfo.loadLabel(context.packageManager).toString() } ?: "None"
                         },

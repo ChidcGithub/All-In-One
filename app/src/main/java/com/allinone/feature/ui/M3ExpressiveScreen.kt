@@ -312,7 +312,7 @@ fun SpringSpeedDemo() {
 
     val springSpec = when (speed) {
         "fast" -> spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessVeryLow)
-        "slow" -> spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = Spring.StiffnessVeryHigh)
+        "slow" -> spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = 50f)
         else -> spring()
     }
 
