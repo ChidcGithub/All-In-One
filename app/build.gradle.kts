@@ -14,7 +14,7 @@ android {
         applicationId = "com.allinone"
         minSdk = 36
         targetSdk = 36
-        versionCode = 0
+        versionCode = 1
         versionName = "v0.0.0-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -40,8 +40,8 @@ android {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
-    kotlinOptions {
-        jvmTarget = "21"
+    kotlin {
+        jvmToolchain(21)
     }
     buildFeatures {
         compose = true
