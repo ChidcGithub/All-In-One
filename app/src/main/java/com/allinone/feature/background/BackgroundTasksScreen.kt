@@ -31,11 +31,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.work.Constraints
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.allinone.core.ui.components.DemoCard
 import com.allinone.core.ui.components.SectionHeader
+import com.allinone.feature.background.worker.ChainedDemoWorker
+import com.allinone.feature.background.worker.DemoWorker
+import com.allinone.feature.background.worker.PeriodicDemoWorker
 import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,8 +86,35 @@ fun BackgroundTasksScreen(
                 Column {
                     Button(
                         onClick = {
-                            // OneTimeWorkRequest requires a Worker subclass implementation
-                            workManagerStatus = "WorkManager demo (requires custom Worker class)"
+                            val workRequest = OneTimeWorkRequestBuilder<DemoWorker>()
+                                .setInputData(
+                                    workDataOf(DemoWorker.KEY_TASK_NAME to "Demo Task")
+                                )
+                                .build()
+
+                            WorkManager.getInstance(context).enqueue(workRequest)
+                            workManagerStatus = "One-time work scheduled"
+
+                            // Observe work status
+                            WorkManager.getInstance(context).getWorkInfoByIdLiveData(workRequest.id)
+                                .observeForever { workInfo ->
+                                    if (workInfo != null) {
+                                        when (workInfo.state) {
+                                            WorkInfo.State.RUNNING -> {
+                                                val progress = workInfo.progress.getInt("progress", 0)
+                                                workManagerStatus = "Working... $progress%"
+                                            }
+                                            WorkInfo.State.SUCCEEDED -> {
+                                                val result = workInfo.outputData.getString("result") ?: "Done"
+                                                workManagerStatus = "Completed: $result"
+                                            }
+                                            WorkInfo.State.FAILED -> {
+                                                workManagerStatus = "Work failed"
+                                            }
+                                            else -> {}
+                                        }
+                                    }
+                                }
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -98,14 +132,35 @@ fun BackgroundTasksScreen(
                 title = "Periodic Work",
                 description = "Schedule recurring background tasks"
             ) {
-                Button(
-                    onClick = {
-                        // In real app: PeriodicWorkRequestBuilder<DemoWorker>(15, TimeUnit.MINUTES).build()
-                        workManagerStatus = "Periodic work scheduled (demo)"
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Schedule Periodic Work")
+                Column {
+                    Button(
+                        onClick = {
+                            val workRequest = PeriodicWorkRequestBuilder<PeriodicDemoWorker>(
+                                15, TimeUnit.MINUTES
+                            )
+                                .setConstraints(
+                                    Constraints.Builder()
+                                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                                        .build()
+                                )
+                                .build()
+
+                            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                                "periodic_demo",
+                                androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+                                workRequest
+                            )
+                            workManagerStatus = "Periodic work scheduled (runs every 15 min with network)"
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Schedule Periodic Work")
+                    }
+                    Text(
+                        text = workManagerStatus,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
                 }
             }
 
@@ -113,13 +168,37 @@ fun BackgroundTasksScreen(
                 title = "Chained Work",
                 description = "Chain multiple work requests together"
             ) {
-                Button(
-                    onClick = {
-                        workManagerStatus = "Work chain scheduled (demo)"
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Schedule Work Chain")
+                Column {
+                    Button(
+                        onClick = {
+                            val step1 = OneTimeWorkRequestBuilder<DemoWorker>()
+                                .setInputData(
+                                    workDataOf(DemoWorker.KEY_TASK_NAME to "Chain Step 1")
+                                )
+                                .build()
+
+                            val step2 = OneTimeWorkRequestBuilder<ChainedDemoWorker>()
+                                .setInputData(
+                                    workDataOf("previous_result" to "From Step 1")
+                                )
+                                .build()
+
+                            WorkManager.getInstance(context)
+                                .beginWith(step1)
+                                .then(step2)
+                                .enqueue()
+
+                            workManagerStatus = "Work chain enqueued: Step1 -> Step2"
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Schedule Work Chain")
+                    }
+                    Text(
+                        text = workManagerStatus,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
                 }
             }
 
