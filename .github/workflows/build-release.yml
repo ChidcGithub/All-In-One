@@ -1,0 +1,187 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+      - beta
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  build-and-release:
+    name: Build APKs and Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Debug APKs for all ABIs
+        run: |
+          ./gradlew clean assembleDebug
+
+      - name: Collect APKs
+        id: collect_apks
+        run: |
+          mkdir -p release-apks
+          cp app/build/outputs/apk/debug/app-arm64-v8a-debug.apk release-apks/all-in-one-debug-arm64-v8a.apk
+          cp app/build/outputs/apk/debug/app-armeabi-v7a-debug.apk release-apks/all-in-one-debug-armeabi-v7a.apk
+          cp app/build/outputs/apk/debug/app-x86-debug.apk release-apks/all-in-one-debug-x86.apk
+          cp app/build/outputs/apk/debug/app-x86_64-debug.apk release-apks/all-in-one-debug-x86_64.apk
+          echo "apk_count=4" >> $GITHUB_OUTPUT
+
+      - name: Get commit info
+        id: commit_info
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "sha_full=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "commit_date=$(git log -1 --format=%ci)" >> $GITHUB_OUTPUT
+          echo "commit_message=$(git log -1 --format=%s)" >> $GITHUB_OUTPUT
+
+      - name: Calculate build SHA
+        id: build_sha
+        run: |
+          BUILD_SHA=$(echo "${{ steps.commit_info.outputs.sha_full }}-${{ github.run_number }}")
+          echo "build_sha=$BUILD_SHA" >> $GITHUB_OUTPUT
+
+      - name: Determine release type
+        id: release_type
+        run: |
+          if [[ "${{ github.ref_name }}" == "beta" ]]; then
+            echo "type=beta" >> $GITHUB_OUTPUT
+            echo "tag_prefix=beta" >> $GITHUB_OUTPUT
+          else
+            echo "type=release" >> $GITHUB_OUTPUT
+            echo "tag_prefix=v" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get previous release tag
+        if: steps.release_type.outputs.type == 'release'
+        id: prev_release
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [[ -z "$PREV_TAG" ]]; then
+            echo "tag=" >> $GITHUB_OUTPUT
+            echo "exists=false" >> $GITHUB_OUTPUT
+          else
+            echo "tag=$PREV_TAG" >> $GITHUB_OUTPUT
+            echo "exists=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate changelog for beta
+        if: steps.release_type.outputs.type == 'beta'
+        id: changelog_beta
+        run: |
+          COMMIT_LOG=$(git log -1 --format="- %s (%h)" HEAD)
+          {
+            echo "CHANGELOG<<EOF"
+            echo "## Beta Release ${{ steps.commit_info.outputs.sha_short }}"
+            echo ""
+            echo "**Build Information:**"
+            echo "- Commit SHA: \`${{ steps.commit_info.outputs.sha_full }}\`"
+            echo "- Build SHA: \`${{ steps.build_sha.outputs.build_sha }}\`"
+            echo "- Build Date: ${{ steps.commit_info.outputs.commit_date }}"
+            echo "- Branch: \`${{ github.ref_name }}\`"
+            echo ""
+            echo "**Changes in this release:**"
+            echo "$COMMIT_LOG"
+            echo ""
+            echo "**Available APKs:**"
+            echo "- arm64-v8a (64-bit ARM)"
+            echo "- armeabi-v7a (32-bit ARM)"
+            echo "- x86 (32-bit)"
+            echo "- x86_64 (64-bit)"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Generate changelog for release
+        if: steps.release_type.outputs.type == 'release'
+        id: changelog_release
+        run: |
+          if [[ "${{ steps.prev_release.outputs.exists }}" == "true" ]]; then
+            COMMIT_RANGE="${{ steps.prev_release.outputs.tag }}..HEAD"
+          else
+            COMMIT_RANGE="HEAD"
+          fi
+
+          COMMIT_LOG=$(git log $COMMIT_RANGE --format="- %s (%h)" --reverse)
+          COMMIT_COUNT=$(git log $COMMIT_RANGE --oneline | wc -l)
+
+          {
+            echo "CHANGELOG<<EOF"
+            echo "## Release ${{ steps.commit_info.outputs.sha_short }}"
+            echo ""
+            echo "**Build Information:**"
+            echo "- Commit SHA: \`${{ steps.commit_info.outputs.sha_full }}\`"
+            echo "- Build SHA: \`${{ steps.build_sha.outputs.build_sha }}\`"
+            echo "- Build Date: ${{ steps.commit_info.outputs.commit_date }}"
+            echo "- Branch: \`${{ github.ref_name }}\`"
+            echo ""
+            echo "**Changes in this release ($COMMIT_COUNT commits):**"
+            if [[ -n "$COMMIT_LOG" ]]; then
+              echo "$COMMIT_LOG"
+            else
+              echo "- Initial release"
+            fi
+            echo ""
+            echo "**Available APKs:**"
+            echo "- arm64-v8a (64-bit ARM)"
+            echo "- armeabi-v7a (32-bit ARM)"
+            echo "- x86 (32-bit)"
+            echo "- x86_64 (64-bit)"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Set release tag
+        id: release_tag
+        run: |
+          if [[ "${{ steps.release_type.outputs.type }}" == "beta" ]]; then
+            TAG="beta-${{ steps.commit_info.outputs.sha_short }}-${{ github.run_number }}"
+          else
+            TAG="v${{ github.run_number }}"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          name: "${{ steps.release_type.outputs.type == 'beta' && 'Beta' || 'Release' }} ${{ steps.commit_info.outputs.sha_short }}"
+          body: "${{ steps.release_type.outputs.type == 'beta' && steps.changelog_beta.outputs.CHANGELOG || steps.changelog_release.outputs.CHANGELOG }}"
+          draft: false
+          prerelease: ${{ steps.release_type.outputs.type == 'beta' }}
+          files: |
+            release-apks/all-in-one-debug-arm64-v8a.apk
+            release-apks/all-in-one-debug-armeabi-v7a.apk
+            release-apks/all-in-one-debug-x86.apk
+            release-apks/all-in-one-debug-x86_64.apk
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
