@@ -1,10 +1,10 @@
 package com.allinone.feature.system
 
-import android.view.accessibility.AccessibilityManager
-import android.view.accessibility.AccessibilityServiceInfo
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -115,7 +115,7 @@ fun AccessibilityScreen(
             ) {
                 Button(
                     onClick = {
-                        val intent = android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
                         context.startActivity(intent)
                     },
                     modifier = Modifier.fillMaxWidth()
