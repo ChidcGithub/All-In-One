@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
-import android.os.ServiceInfo
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.allinone.R
@@ -14,6 +13,7 @@ class DemoForegroundService : Service() {
 
     private val channelId = "demo_foreground_channel"
     private val notificationId = 1
+    private val foregroundServiceType = 0x00000040 // ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
 
     override fun onCreate() {
         super.onCreate()
@@ -32,7 +32,7 @@ class DemoForegroundService : Service() {
             this,
             notificationId,
             notification,
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            foregroundServiceType
         )
         return START_STICKY
     }

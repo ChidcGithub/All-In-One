@@ -18,10 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Accessibility
@@ -164,10 +161,10 @@ fun SearchBar(
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
 
     val elevation by animateDpAsState(
-        targetValue = if (isFocused) 8.dp else 2.dp,
+        targetValue = 2.dp,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMediumLow
@@ -203,7 +200,7 @@ fun SearchBar(
                 unfocusedIndicatorColor = Color.Transparent
             ),
             shape = MaterialTheme.shapes.extraLarge,
-            onFocusedChange = { isFocused = it }
+            interactionSource = interactionSource
         )
     }
 }
@@ -254,15 +251,28 @@ fun ModuleList(
     isExpandedScreen: Boolean,
     modifier: Modifier = Modifier
 ) {
-    LazyVerticalStaggeredGrid(
-        columns = StaggeredGridCells.Adaptive(160.dp),
+    LazyColumn(
         contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalItemSpacing = 12.dp,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier
     ) {
-        items(modules) { module ->
-            ModuleCard(module = module, onClick = { onModuleClick(module) })
+        items(modules.chunked(2)) { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                rowItems.forEach { module ->
+                    ModuleCard(
+                        module = module,
+                        onClick = { onModuleClick(module) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                // Add spacer if odd number of items
+                if (rowItems.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }

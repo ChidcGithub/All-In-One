@@ -91,7 +91,7 @@ fun BackgroundTasksScreen(
 
                 DisposableEffect(workRequestId, lifecycleOwner) {
                     if (workRequestId != null) {
-                        val observer = androidx.lifecycle.Observer<WorkInfo> { workInfo ->
+                        val observer = androidx.lifecycle.Observer<WorkInfo?> { workInfo ->
                             if (workInfo != null) {
                                 when (workInfo.state) {
                                     WorkInfo.State.RUNNING -> workManagerStatus = "Work running..."
