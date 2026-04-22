@@ -4,7 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.os.Build
+import android.os.Binder
 import android.os.IBinder
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.allinone.core.ui.components.DemoCard
 import com.allinone.core.ui.components.SectionHeader
 import com.allinone.feature.system.service.DemoForegroundService
+import com.allinone.feature.system.service.DemoBoundService
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,7 +46,6 @@ fun ServicesScreen(
 ) {
     val context = LocalContext.current
     var isForegroundRunning by remember { mutableStateOf(false) }
-    var isBackgroundRunning by remember { mutableStateOf(false) }
     var isBound by remember { mutableStateOf(false) }
     var binderData by remember { mutableStateOf("Not bound") }
     var serviceLog by remember { mutableStateOf(listOf<String>()) }
@@ -58,8 +58,9 @@ fun ServicesScreen(
         object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
                 isBound = true
-                binderData = "Bound to service: ${name?.className}"
-                addLog("Service connected")
+                val boundService = (service as DemoBoundService.LocalBinder).getService()
+                binderData = "Bound: ${boundService.getData()}"
+                addLog("Service connected: ${boundService.getData()}")
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
@@ -103,15 +104,13 @@ fun ServicesScreen(
 
             DemoCard(
                 title = "Foreground Service",
-                description = "Service with persistent notification (API 36+)"
+                description = "Service with persistent notification"
             ) {
                 Button(
                     onClick = {
                         if (!isForegroundRunning) {
                             val intent = Intent(context, DemoForegroundService::class.java)
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                context.startForegroundService(intent)
-                            }
+                            context.startForegroundService(intent)
                             isForegroundRunning = true
                             addLog("Foreground service started")
                         } else {
@@ -126,29 +125,6 @@ fun ServicesScreen(
                 }
             }
 
-            SectionHeader("Background Service")
-
-            DemoCard(
-                title = "Background Service",
-                description = "Service running without notification (limited on Android 16+)"
-            ) {
-                Button(
-                    onClick = {
-                        if (!isBackgroundRunning) {
-                            // In Android 16+, background services are heavily restricted
-                            addLog("Background service attempted (restricted on API 36+)")
-                            isBackgroundRunning = true
-                        } else {
-                            addLog("Background service stopped")
-                            isBackgroundRunning = false
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (isBackgroundRunning) "Stop Background Service" else "Start Background Service")
-                }
-            }
-
             SectionHeader("Bound Service")
 
             DemoCard(
@@ -158,7 +134,7 @@ fun ServicesScreen(
                 Button(
                     onClick = {
                         if (!isBound) {
-                            val intent = Intent(context, DemoForegroundService::class.java)
+                            val intent = Intent(context, DemoBoundService::class.java)
                             context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
                             addLog("Binding to service...")
                         } else {

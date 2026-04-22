@@ -24,13 +24,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LifecycleOwner
 import androidx.work.Constraints
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
@@ -83,6 +86,37 @@ fun BackgroundTasksScreen(
                 title = "One-Time Work",
                 description = "Schedule a one-time background task"
             ) {
+                var workRequestId by remember { mutableStateOf<java.util.UUID?>(null) }
+                val lifecycleOwner = LocalLifecycleOwner.current
+
+                DisposableEffect(workRequestId, lifecycleOwner) {
+                    if (workRequestId != null) {
+                        val observer = androidx.lifecycle.Observer<WorkInfo> { workInfo ->
+                            if (workInfo != null) {
+                                when (workInfo.state) {
+                                    WorkInfo.State.RUNNING -> workManagerStatus = "Work running..."
+                                    WorkInfo.State.SUCCEEDED -> {
+                                        val result = workInfo.outputData.getString("result") ?: "Done"
+                                        workManagerStatus = "Completed: $result"
+                                    }
+                                    WorkInfo.State.FAILED -> workManagerStatus = "Work failed"
+                                    else -> {}
+                                }
+                            }
+                        }
+                        WorkManager.getInstance(context)
+                            .getWorkInfoByIdLiveData(workRequestId!!)
+                            .observe(lifecycleOwner, observer)
+                        onDispose {
+                            WorkManager.getInstance(context)
+                                .getWorkInfoByIdLiveData(workRequestId!!)
+                                .removeObserver(observer)
+                        }
+                    } else {
+                        onDispose {}
+                    }
+                }
+
                 Column {
                     Button(
                         onClick = {
@@ -91,29 +125,9 @@ fun BackgroundTasksScreen(
                                     workDataOf(DemoWorker.KEY_TASK_NAME to "Demo Task")
                                 )
                                 .build()
-
+                            workRequestId = workRequest.id
                             WorkManager.getInstance(context).enqueue(workRequest)
                             workManagerStatus = "One-time work scheduled"
-
-                            // Observe work status
-                            WorkManager.getInstance(context).getWorkInfoByIdLiveData(workRequest.id)
-                                .observeForever { workInfo ->
-                                    if (workInfo != null) {
-                                        when (workInfo.state) {
-                                            WorkInfo.State.RUNNING -> {
-                                                workManagerStatus = "Work running..."
-                                            }
-                                            WorkInfo.State.SUCCEEDED -> {
-                                                val result = workInfo.outputData.getString("result") ?: "Done"
-                                                workManagerStatus = "Completed: $result"
-                                            }
-                                            WorkInfo.State.FAILED -> {
-                                                workManagerStatus = "Work failed"
-                                            }
-                                            else -> {}
-                                        }
-                                    }
-                                }
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {

@@ -88,6 +88,11 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <service
+            android:name=".feature.system.service.DemoBoundService"
+            android:enabled="true"
+            android:exported="false" />
+
         <!-- Broadcast Receivers -->
         <receiver
             android:name=".feature.system.receiver.DemoBroadcastReceiver"
